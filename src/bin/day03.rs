@@ -12,57 +12,8 @@ enum Sensor {
     CO2,
 }
 
-fn find_sensor_val(
-    stype: Sensor,
-    prefix_map: &HashMap<(u32, usize), u32>,
-    prefix: u32,
-    pos: usize,
-) -> u32 {
-    if pos == 0 {
-        return prefix;
-    }
-
-    let num_ones = *prefix_map
-        .get(&(prefix | (1 << (pos - 1)), pos - 1))
-        .unwrap_or(&0);
-    let num_zeros = *prefix_map.get(&(prefix, pos - 1)).unwrap_or(&0);
-
-    if num_ones == 0 {
-        find_sensor_val(stype, prefix_map, prefix, pos - 1)
-    } else if num_zeros == 0 {
-        find_sensor_val(stype, prefix_map, prefix | (1 << (pos - 1)), pos - 1)
-    } else {
-        let new_pre = match stype {
-            Sensor::O2 => {
-                if num_ones as i32 - num_zeros as i32 >= 0 {
-                    prefix | (1 << (pos - 1))
-                } else {
-                    prefix
-                }
-            }
-            Sensor::CO2 => {
-                if num_ones as i32 - num_zeros as i32 >= 0 {
-                    prefix
-                } else {
-                    prefix | (1 << (pos - 1))
-                }
-            }
-        };
-        find_sensor_val(stype, prefix_map, new_pre, pos - 1)
-    }
-}
-
-fn increment_cnt(numheap: &mut HashMap<(u32, usize), u32>, key: (u32, usize)) {
-    match numheap.get_mut(&key) {
-        Some(refer) => *refer += 1u32,
-        None => {
-            numheap.insert(key, 1);
-        }
-    }
-}
-
-fn solve(input: Vec<u8>) -> (u32, u32) {
-    let (common_bits, prefix_map, offset) = input
+fn parse_and_build_ds(input: Vec<u8>) -> ([i32; 32], HashMap<(u32, usize), i64>, usize) {
+    input
         .iter()
         .rev()
         .group_by(|&&chr| chr != b'\n')
@@ -86,11 +37,61 @@ fn solve(input: Vec<u8>) -> (u32, u32) {
                     } else {
                         common_bits[pos] -= 1;
                     }
-                    increment_cnt(&mut prefix_map, (prefix, shift_by));
+                    let key = (prefix, shift_by);
+                    match prefix_map.get_mut(&key) {
+                        Some(refer) => *refer += 1i64,
+                        None => {
+                            prefix_map.insert(key, 1i64);
+                        }
+                    }
                 }
                 (common_bits, prefix_map, offset)
             },
-        );
+        )
+}
+
+fn find_sensor_val(
+    stype: Sensor,
+    prefix_map: &HashMap<(u32, usize), i64>,
+    prefix: u32,
+    pos: usize,
+) -> u32 {
+    if pos == 0 {
+        return prefix;
+    }
+
+    let num_ones = *prefix_map
+        .get(&(prefix | (1 << (pos - 1)), pos - 1))
+        .unwrap_or(&0);
+    let num_zeros = *prefix_map.get(&(prefix, pos - 1)).unwrap_or(&0);
+
+    if num_ones == 0 {
+        find_sensor_val(stype, prefix_map, prefix, pos - 1)
+    } else if num_zeros == 0 {
+        find_sensor_val(stype, prefix_map, prefix | (1 << (pos - 1)), pos - 1)
+    } else {
+        let new_pre = match stype {
+            Sensor::O2 => {
+                if num_ones - num_zeros >= 0 {
+                    prefix | (1 << (pos - 1))
+                } else {
+                    prefix
+                }
+            }
+            Sensor::CO2 => {
+                if num_ones - num_zeros >= 0 {
+                    prefix
+                } else {
+                    prefix | (1 << (pos - 1))
+                }
+            }
+        };
+        find_sensor_val(stype, prefix_map, new_pre, pos - 1)
+    }
+}
+
+fn solve(input: Vec<u8>) -> (u32, u32) {
+    let (common_bits, prefix_map, offset) = parse_and_build_ds(input);
 
     let common_bits = &common_bits[offset..];
     let bitsize = common_bits.len();
