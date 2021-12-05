@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     env, fs,
     io::{self, Read},
 };
@@ -8,14 +7,17 @@ fn fold_decimal(acc: i32, chr: u8) -> i32 {
     acc * 10 + (chr - b'0') as i32
 }
 
+fn generate_coord(x: i32, y: i32, sx: i32) -> usize {
+    (x + (y * sx)) as usize
+}
+
 fn add_points(
-    point_set_p1: &mut HashSet<(i32, i32)>,
-    point_set: &mut HashSet<(i32, i32)>,
-    result_set_p1: &mut HashSet<(i32, i32)>,
-    result_set: &mut HashSet<(i32, i32)>,
+    flat_points: &mut Vec<(i32, i32)>,
+    points: &mut Vec<(i32, i32)>,
+    max: (i32, i32),
     start: (i32, i32),
     end: (i32, i32),
-) {
+) -> (i32, i32) {
     let (mut x1, mut y1) = start;
     let (x2, y2) = end;
     let dx = (x2 - x1).abs();
@@ -23,20 +25,22 @@ fn add_points(
     let slopex = if x1 < x2 { 1 } else { -1 };
     let slopey = if y1 < y2 { 1 } else { -1 };
     let flat = x1 == x2 || y1 == y2;
+
     let mut error = dx - dy;
+    let (mut new_max_x, mut new_max_y) = max;
 
     loop {
-        if point_set.contains(&(x1, y1)) {
-            result_set.insert((x1, y1));
-        } else {
-            point_set.insert((x1, y1));
+        if new_max_x < x1 {
+            new_max_x = x1;
+        }
+        if new_max_y < y1 {
+            new_max_y = y1;
         }
 
-        // Part1 specific
-        if flat && point_set_p1.contains(&(x1, y1)) {
-            result_set_p1.insert((x1, y1));
-        } else if flat {
-            point_set_p1.insert((x1, y1));
+        if flat {
+            flat_points.push((x1, y1));
+        } else {
+            points.push((x1, y1));
         }
 
         if x1 == x2 && y1 == y2 {
@@ -53,14 +57,19 @@ fn add_points(
             y1 += slopey;
         }
     }
+    (new_max_x, new_max_y)
 }
 
 fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
-    let mut point_set_p1 = HashSet::<(i32, i32)>::new();
-    let mut point_set = HashSet::<(i32, i32)>::new();
-    // only x1 = x2 || y1 = y2
-    let mut result_set_p1 = HashSet::<(i32, i32)>::new();
-    let mut result_set = HashSet::<(i32, i32)>::new();
+    // input length is a good "guesstimate"
+    let mut flat_points = Vec::<(i32, i32)>::new();
+    let mut points = Vec::<(i32, i32)>::new();
+
+    let mut flat_num_intersect = 0;
+    let mut num_intersect = 0;
+
+    let mut max_point = (0, 0);
+
     let mut curr_num = 0;
     let mut start_end = [0i32; 4];
     let mut idx_start_end = 0;
@@ -76,11 +85,10 @@ fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
                 start_end[3] = curr_num;
                 idx_start_end = 0;
                 curr_num = 0;
-                add_points(
-                    &mut point_set_p1,
-                    &mut point_set,
-                    &mut result_set_p1,
-                    &mut result_set,
+                max_point = add_points(
+                    &mut flat_points,
+                    &mut points,
+                    max_point,
                     (start_end[0], start_end[1]),
                     (start_end[2], start_end[3]),
                 );
@@ -95,7 +103,23 @@ fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
             _ => (),
         }
     }
-    (result_set_p1.len(), result_set.len())
+
+    let mut graph = vec![0u16; (max_point.0 + 1) as usize * (max_point.1 + 1) as usize];
+    for (x, y) in flat_points {
+        let coord = generate_coord(x, y, max_point.0);
+        graph[coord] += 1;
+        if graph[coord] == 2 {
+            flat_num_intersect += 1;
+        }
+    }
+    for (x, y) in points {
+        let coord = generate_coord(x, y, max_point.0);
+        graph[coord] += 1;
+        if graph[coord] == 2 {
+            num_intersect += 1;
+        }
+    }
+    (flat_num_intersect, num_intersect + flat_num_intersect)
 }
 
 pub fn main() -> io::Result<()> {
