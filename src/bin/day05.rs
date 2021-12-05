@@ -8,65 +8,59 @@ fn fold_decimal(acc: i32, chr: u8) -> i32 {
 }
 
 fn generate_coord(x: i32, y: i32, sx: i32) -> usize {
-    (x + (y * sx)) as usize
+    (x + (y * (sx + 1))) as usize
 }
 
 fn add_points(
     flat_points: &mut Vec<(i32, i32)>,
     points: &mut Vec<(i32, i32)>,
-    max: (i32, i32),
     start: (i32, i32),
     end: (i32, i32),
-) -> (i32, i32) {
+) {
     let (mut x1, mut y1) = start;
     let (x2, y2) = end;
-    let dx = (x2 - x1).abs();
-    let dy = (y2 - y1).abs();
-    let slopex = if x1 < x2 { 1 } else { -1 };
-    let slopey = if y1 < y2 { 1 } else { -1 };
-    let flat = x1 == x2 || y1 == y2;
 
-    let mut error = dx - dy;
-    let (mut new_max_x, mut new_max_y) = max;
-
-    loop {
-        if new_max_x < x1 {
-            new_max_x = x1;
+    if x1 == x2 {
+        let range = if y1 < y2 { y1..=y2 } else { y2..=y1 };
+        for y in range {
+            flat_points.push((x1, y));
         }
-        if new_max_y < y1 {
-            new_max_y = y1;
+    } else if y1 == y2 {
+        let range = if x1 < x2 { x1..=x2 } else { x2..=x1 };
+        for x in range {
+            flat_points.push((x, y1));
         }
+    } else {
+        let dx = (x2 - x1).abs();
+        let dy = (y2 - y1).abs();
+        let slopex = if x1 < x2 { 1 } else { -1 };
+        let slopey = if y1 < y2 { 1 } else { -1 };
 
-        if flat {
-            flat_points.push((x1, y1));
-        } else {
+        let mut error = dx - dy;
+        loop {
             points.push((x1, y1));
-        }
 
-        if x1 == x2 && y1 == y2 {
-            break;
-        }
+            if x1 == x2 && y1 == y2 {
+                break;
+            }
 
-        let error2 = error << 1;
-        if error2 > -dy {
-            error -= dy;
-            x1 += slopex;
-        }
-        if error2 < dx {
-            error += dx;
-            y1 += slopey;
+            let error2 = error << 1;
+            if error2 > -dy {
+                error -= dy;
+                x1 += slopex;
+            }
+            if error2 < dx {
+                error += dx;
+                y1 += slopey;
+            }
         }
     }
-    (new_max_x, new_max_y)
 }
 
-fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
+fn parse(input: Vec<u8>) -> ((i32, i32), Vec<(i32, i32)>, Vec<(i32, i32)>) {
     // input length is a good "guesstimate"
-    let mut flat_points = Vec::<(i32, i32)>::new();
-    let mut points = Vec::<(i32, i32)>::new();
-
-    let mut flat_num_intersect = 0;
-    let mut num_intersect = 0;
+    let mut flat_points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
+    let mut points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
 
     let mut max_point = (0, 0);
 
@@ -85,13 +79,24 @@ fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
                 start_end[3] = curr_num;
                 idx_start_end = 0;
                 curr_num = 0;
-                max_point = add_points(
+                add_points(
                     &mut flat_points,
                     &mut points,
-                    max_point,
                     (start_end[0], start_end[1]),
                     (start_end[2], start_end[3]),
                 );
+                if start_end[0] > max_point.0 {
+                    max_point.0 = start_end[0]
+                }
+                if start_end[2] > max_point.0 {
+                    max_point.0 = start_end[2]
+                }
+                if start_end[1] > max_point.1 {
+                    max_point.1 = start_end[0]
+                }
+                if start_end[3] > max_point.1 {
+                    max_point.1 = start_end[2]
+                }
                 start_end[0] = 0;
                 start_end[1] = 0;
                 start_end[2] = 0;
@@ -103,6 +108,16 @@ fn parse_and_solve(input: Vec<u8>) -> (usize, usize) {
             _ => (),
         }
     }
+    (max_point, flat_points, points)
+}
+
+fn solve(
+    max_point: (i32, i32),
+    flat_points: Vec<(i32, i32)>,
+    points: Vec<(i32, i32)>,
+) -> (usize, usize) {
+    let mut flat_num_intersect = 0;
+    let mut num_intersect = 0;
 
     let mut graph = vec![0u16; (max_point.0 + 1) as usize * (max_point.1 + 1) as usize];
     for (x, y) in flat_points {
@@ -131,7 +146,8 @@ pub fn main() -> io::Result<()> {
             buf
         }
     };
-    let (p1, p2) = parse_and_solve(input);
+    let (mp, fp, p) = parse(input);
+    let (p1, p2) = solve(mp, fp, p);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())
 }
