@@ -3,15 +3,12 @@ use std::{
     io::{self, Read},
 };
 
-const MAXSIZ: usize = 2usize.pow(26);
-const ROWLEN: i32 = 2i32.pow(13);
-
 fn fold_decimal(acc: i32, chr: u8) -> i32 {
     acc * 10 + (chr - b'0') as i32
 }
 
-fn generate_coord(x: i32, y: i32) -> usize {
-    (x * ROWLEN + y) as usize
+fn generate_coord(x: i32, y: i32, dim: i32) -> usize {
+    (x + y * dim) as usize
 }
 
 fn add_points(
@@ -60,10 +57,11 @@ fn add_points(
     }
 }
 
-fn parse(input: Vec<u8>) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
+fn parse(input: Vec<u8>) -> (i32, Vec<(i32, i32)>, Vec<(i32, i32)>) {
     // input length is a good "guesstimate"
     let mut flat_points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
     let mut points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
+    let mut dimension = 0;
 
     let mut curr_num = 0;
     let mut start_end = [0i32; 4];
@@ -86,6 +84,9 @@ fn parse(input: Vec<u8>) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
                     (start_end[0], start_end[1]),
                     (start_end[2], start_end[3]),
                 );
+                dimension = start_end
+                    .iter()
+                    .fold(dimension, |acc, &num| if num > acc { num } else { acc });
                 start_end[0] = 0;
                 start_end[1] = 0;
                 start_end[2] = 0;
@@ -97,23 +98,23 @@ fn parse(input: Vec<u8>) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
             _ => (),
         }
     }
-    (flat_points, points)
+    (dimension + 1, flat_points, points)
 }
 
-fn solve(flat_points: Vec<(i32, i32)>, points: Vec<(i32, i32)>) -> (usize, usize) {
+fn solve(dim: i32, flat_points: Vec<(i32, i32)>, points: Vec<(i32, i32)>) -> (usize, usize) {
     let mut flat_num_intersect = 0;
     let mut num_intersect = 0;
 
-    let mut graph = vec![0u8; MAXSIZ];
+    let mut graph = vec![0u8; dim as usize * dim as usize];
     for (x, y) in flat_points {
-        let coord = generate_coord(x, y);
+        let coord = generate_coord(x, y, dim);
         graph[coord] += 1;
         if graph[coord] == 2 {
             flat_num_intersect += 1;
         }
     }
     for (x, y) in points {
-        let coord = generate_coord(x, y);
+        let coord = generate_coord(x, y, dim);
         graph[coord] += 1;
         if graph[coord] == 2 {
             num_intersect += 1;
@@ -131,8 +132,8 @@ pub fn main() -> io::Result<()> {
             buf
         }
     };
-    let (fp, p) = parse(input);
-    let (p1, p2) = solve(fp, p);
+    let (dim, fp, p) = parse(input);
+    let (p1, p2) = solve(dim, fp, p);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())
 }
