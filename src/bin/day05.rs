@@ -3,12 +3,15 @@ use std::{
     io::{self, Read},
 };
 
+const MAXSIZ: usize = 2usize.pow(26);
+const ROWLEN: i32 = 2i32.pow(13);
+
 fn fold_decimal(acc: i32, chr: u8) -> i32 {
     acc * 10 + (chr - b'0') as i32
 }
 
-fn generate_coord(x: i32, y: i32, sx: i32) -> usize {
-    (x + (y * (sx + 1))) as usize
+fn generate_coord(x: i32, y: i32) -> usize {
+    (x * ROWLEN + y) as usize
 }
 
 fn add_points(
@@ -57,12 +60,10 @@ fn add_points(
     }
 }
 
-fn parse(input: Vec<u8>) -> ((i32, i32), Vec<(i32, i32)>, Vec<(i32, i32)>) {
+fn parse(input: Vec<u8>) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
     // input length is a good "guesstimate"
     let mut flat_points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
     let mut points = Vec::<(i32, i32)>::with_capacity(input.len() / 4);
-
-    let mut max_point = (0, 0);
 
     let mut curr_num = 0;
     let mut start_end = [0i32; 4];
@@ -85,18 +86,6 @@ fn parse(input: Vec<u8>) -> ((i32, i32), Vec<(i32, i32)>, Vec<(i32, i32)>) {
                     (start_end[0], start_end[1]),
                     (start_end[2], start_end[3]),
                 );
-                if start_end[0] > max_point.0 {
-                    max_point.0 = start_end[0]
-                }
-                if start_end[2] > max_point.0 {
-                    max_point.0 = start_end[2]
-                }
-                if start_end[1] > max_point.1 {
-                    max_point.1 = start_end[0]
-                }
-                if start_end[3] > max_point.1 {
-                    max_point.1 = start_end[2]
-                }
                 start_end[0] = 0;
                 start_end[1] = 0;
                 start_end[2] = 0;
@@ -108,27 +97,23 @@ fn parse(input: Vec<u8>) -> ((i32, i32), Vec<(i32, i32)>, Vec<(i32, i32)>) {
             _ => (),
         }
     }
-    (max_point, flat_points, points)
+    (flat_points, points)
 }
 
-fn solve(
-    max_point: (i32, i32),
-    flat_points: Vec<(i32, i32)>,
-    points: Vec<(i32, i32)>,
-) -> (usize, usize) {
+fn solve(flat_points: Vec<(i32, i32)>, points: Vec<(i32, i32)>) -> (usize, usize) {
     let mut flat_num_intersect = 0;
     let mut num_intersect = 0;
 
-    let mut graph = vec![0u16; (max_point.0 + 1) as usize * (max_point.1 + 1) as usize];
+    let mut graph = vec![0u8; MAXSIZ];
     for (x, y) in flat_points {
-        let coord = generate_coord(x, y, max_point.0);
+        let coord = generate_coord(x, y);
         graph[coord] += 1;
         if graph[coord] == 2 {
             flat_num_intersect += 1;
         }
     }
     for (x, y) in points {
-        let coord = generate_coord(x, y, max_point.0);
+        let coord = generate_coord(x, y);
         graph[coord] += 1;
         if graph[coord] == 2 {
             num_intersect += 1;
@@ -146,8 +131,8 @@ pub fn main() -> io::Result<()> {
             buf
         }
     };
-    let (mp, fp, p) = parse(input);
-    let (p1, p2) = solve(mp, fp, p);
+    let (fp, p) = parse(input);
+    let (p1, p2) = solve(fp, p);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())
 }
