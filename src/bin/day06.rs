@@ -19,6 +19,26 @@ fn parse(input: Vec<u8>) -> Vec<u8> {
 const PART_1_CNT: u64 = 80;
 const PART_2_CNT: u64 = 256;
 
+// This isn't as cool as below matrix solution.
+// fn rotate_cnt(residue: &mut [u128], fishcnt: &mut [u128], cnt: u32) -> u128 {
+//     for _ in 0..cnt {
+//         residue[0] = fishcnt[1];
+//         residue[1] = fishcnt[2];
+//         residue[2] = fishcnt[3];
+//         residue[3] = fishcnt[4];
+//         residue[4] = fishcnt[5];
+//         residue[5] = fishcnt[6];
+//         residue[6] = fishcnt[0] + fishcnt[7];
+//         residue[7] = fishcnt[8];
+//         residue[8] = fishcnt[0];
+//         residue
+//             .iter()
+//             .enumerate()
+//             .for_each(|(idx, &f)| fishcnt[idx] = f);
+//     }
+//     fishcnt.iter().sum()
+// }
+
 fn m_idx<const RLEN: usize>(x: usize, y: usize) -> usize {
     x * RLEN + y
 }
@@ -73,7 +93,17 @@ fn solve_sum<const RLEN: usize>(exp_mat: &[u128], fishy: &[u128]) -> u128 {
     sum
 }
 
-fn solve(fish: Vec<u8>, custom_inp: u64) -> (u128, u128, u128) {
+fn solve(fish: Vec<u8>) -> (u128, u128) {
+    //let mut residue = [0u128; FISHLIFESIZ];
+    //let mut fishcnt = fish.iter().fold([0u128; 9], |mut acc, &f| {
+    //    acc[f as usize] += 1;
+    //    acc
+    //});
+
+    //let part1 = rotate_cnt(&mut residue, &mut fishcnt, PART_1_CNT);
+    //let part2 = rotate_cnt(&mut residue, &mut fishcnt, PART_2_CNT - PART_1_CNT);
+    //(part1, part2)
+
     let fishcnt = fish.iter().fold([0u128; 9], |mut acc, &f| {
         acc[f as usize] += 1;
         acc
@@ -96,15 +126,7 @@ fn solve(fish: Vec<u8>, custom_inp: u64) -> (u128, u128, u128) {
 
     let part2_exp_mat = pow_mat::<9, 81>(&recur_mat, PART_2_CNT);
     let part2 = solve_sum::<9>(&part2_exp_mat, &fishcnt);
-
-    let custom = if custom_inp != 0 {
-        let custom_exp_mat = pow_mat::<9, 81>(&recur_mat, custom_inp);
-        solve_sum::<9>(&custom_exp_mat, &fishcnt)
-    } else {
-        0
-    };
-
-    (part1, part2, custom)
+    (part1, part2)
 }
 
 pub fn main() -> io::Result<()> {
@@ -116,14 +138,8 @@ pub fn main() -> io::Result<()> {
             buf
         }
     };
-
-    let custom_input = match env::args().nth(2) {
-        Some(val) => val.parse::<u64>().unwrap(),
-        None => 0u64,
-    };
-
     let fish = parse(input);
-    let (p1, p2, c) = solve(fish, custom_input);
-    println!("Part1 {}, Part2 {}, Custom {}", p1, p2, c);
+    let (p1, p2) = solve(fish);
+    println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())
 }
