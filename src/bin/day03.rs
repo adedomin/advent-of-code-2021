@@ -112,7 +112,6 @@ fn find_gamma_epsilon(input: [i32; 128], bitsize: usize) -> u128 {
 fn solve(input: Vec<u8>) -> (u128, u128) {
     let (common_bits, parsed, bitsize) = parse(input);
 
-    println!("{}", bitsize);
     (
         find_gamma_epsilon(common_bits, bitsize),
         find_oxy_co2_rating(parsed, bitsize),
