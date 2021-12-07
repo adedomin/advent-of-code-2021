@@ -30,13 +30,9 @@ fn parse(input: Vec<u8>) -> Vec<u64> {
     crabs
 }
 
-/// 0.5x^2 + 0.5x
-/// or
-/// 0.5x(x+1)
-/// or
-/// (x(x+1))/2
-fn p2_cost(abs_s: u64) -> u64 {
-    (abs_s * (abs_s + 1)) / 2
+fn p2_cost(n: u64) -> u64 {
+    //(1..=n).sum()
+    (n * (n + 1)) / 2
 }
 
 fn solve(crabs: &mut Vec<u64>) -> (u64, u64) {

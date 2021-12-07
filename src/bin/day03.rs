@@ -1,115 +1,122 @@
 use std::{
-    collections::HashMap,
     env, fs,
     io::{self, Read},
+    mem,
 };
 
-use itertools::Itertools;
-
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum Sensor {
     O2,
     CO2,
 }
 
-fn parse_and_build_ds(input: Vec<u8>) -> ([i32; 32], HashMap<(u32, usize), i64>, usize) {
-    input
-        .iter()
-        .rev()
-        .group_by(|&&chr| chr != b'\n')
-        .into_iter()
-        .filter(|(grp_type, _)| *grp_type)
-        .map(|(_, digits)| {
-            digits.fold((0u32, 0usize), |(acc, idx), &digit| {
-                (acc | ((digit - b'0') as u32) << idx, idx + 1)
-            })
-        })
-        .fold(
-            ([0i32; 32], HashMap::new(), 0usize),
-            |(mut common_bits, mut prefix_map, _), (n, bitsiz)| {
-                let offset = common_bits.len() - bitsiz;
-                let mut prefix = 0u32;
-                for pos in offset..common_bits.len() {
-                    let shift_by = (common_bits.len() - 1) - pos;
-                    if n & (1 << shift_by) != 0 {
-                        common_bits[pos] += 1;
-                        prefix |= 1 << shift_by;
-                    } else {
-                        common_bits[pos] -= 1;
+fn parse(input: Vec<u8>) -> ([i32; 128], Vec<u128>, usize) {
+    let (gamma_arr, input_parsed, _, bitsize) = input.iter().rfold(
+        ([0i32; 128], Vec::<u128>::new(), 0usize, 0usize),
+        |(mut gamma_arr, mut acc, idx, bitsize), &digit| match digit {
+            b'1' => {
+                if idx == 0 {
+                    acc.push(1);
+                } else if let Some(last) = acc.last_mut() {
+                    *last |= 1 << idx;
+                } else {
+                    acc.push(1);
+                }
+                gamma_arr[idx] += 1;
+                (gamma_arr, acc, idx + 1, bitsize)
+            }
+            b'0' => {
+                if acc.last().is_none() || idx == 0 {
+                    acc.push(0);
+                }
+                gamma_arr[idx] -= 1;
+                (gamma_arr, acc, idx + 1, bitsize)
+            }
+            b'\n' => (gamma_arr, acc, 0, if idx > bitsize { idx } else { bitsize }),
+            _ => panic!("Unknown file format."),
+        },
+    );
+    (gamma_arr, input_parsed, bitsize)
+}
+
+fn find_oxy_co2_rating(input: Vec<u128>, bitsize: usize) -> u128 {
+    let mut ones = vec![];
+    let mut zeroes = vec![];
+
+    let mut o2 = 0;
+    let mut co2 = 0;
+
+    for stype in [Sensor::O2, Sensor::CO2] {
+        let mut iter_arr = input.clone();
+        for i in (0..bitsize).rev() {
+            let filt = 1 << i;
+            for &num in &iter_arr {
+                if num & filt == filt {
+                    ones.push(num);
+                } else {
+                    zeroes.push(num);
+                }
+            }
+            if ones.is_empty() {
+                mem::swap(&mut iter_arr, &mut zeroes);
+                zeroes.clear();
+            } else if zeroes.is_empty() {
+                mem::swap(&mut iter_arr, &mut ones);
+                ones.clear();
+            } else {
+                match stype {
+                    Sensor::O2 => {
+                        if ones.len() >= zeroes.len() {
+                            mem::swap(&mut iter_arr, &mut ones);
+                        } else {
+                            mem::swap(&mut iter_arr, &mut zeroes);
+                        }
                     }
-                    let key = (prefix, shift_by);
-                    match prefix_map.get_mut(&key) {
-                        Some(refer) => *refer += 1i64,
-                        None => {
-                            prefix_map.insert(key, 1i64);
+                    Sensor::CO2 => {
+                        if ones.len() >= zeroes.len() {
+                            mem::swap(&mut iter_arr, &mut zeroes);
+                        } else {
+                            mem::swap(&mut iter_arr, &mut ones);
                         }
                     }
                 }
-                (common_bits, prefix_map, offset)
+            }
+            ones.clear();
+            zeroes.clear();
+        }
+        match stype {
+            Sensor::O2 => o2 = iter_arr[0],
+            Sensor::CO2 => co2 = iter_arr[0],
+        }
+    }
+    o2 * co2
+}
+
+fn find_gamma_epsilon(input: [i32; 128], bitsize: usize) -> u128 {
+    let common_bits = &input[..bitsize];
+    let gamma =
+        common_bits.iter().enumerate().fold(
+            0u128,
+            |acc, (idx, &num)| {
+                if num >= 0 {
+                    acc | 1 << idx
+                } else {
+                    acc
+                }
             },
-        )
+        );
+    let epsilon = gamma ^ (2u128.pow(bitsize as u32) - 1);
+    gamma * epsilon
 }
 
-fn find_sensor_val(
-    stype: Sensor,
-    prefix_map: &HashMap<(u32, usize), i64>,
-    prefix: u32,
-    pos: usize,
-) -> u32 {
-    if pos == 0 {
-        return prefix;
-    }
+fn solve(input: Vec<u8>) -> (u128, u128) {
+    let (common_bits, parsed, bitsize) = parse(input);
 
-    let num_ones = *prefix_map
-        .get(&(prefix | (1 << (pos - 1)), pos - 1))
-        .unwrap_or(&0);
-    let num_zeros = *prefix_map.get(&(prefix, pos - 1)).unwrap_or(&0);
-
-    if num_ones == 0 {
-        find_sensor_val(stype, prefix_map, prefix, pos - 1)
-    } else if num_zeros == 0 {
-        find_sensor_val(stype, prefix_map, prefix | (1 << (pos - 1)), pos - 1)
-    } else {
-        let new_pre = match stype {
-            Sensor::O2 => {
-                if num_ones - num_zeros >= 0 {
-                    prefix | (1 << (pos - 1))
-                } else {
-                    prefix
-                }
-            }
-            Sensor::CO2 => {
-                if num_ones - num_zeros >= 0 {
-                    prefix
-                } else {
-                    prefix | (1 << (pos - 1))
-                }
-            }
-        };
-        find_sensor_val(stype, prefix_map, new_pre, pos - 1)
-    }
-}
-
-fn solve(input: Vec<u8>) -> (u32, u32) {
-    let (common_bits, prefix_map, offset) = parse_and_build_ds(input);
-
-    let common_bits = &common_bits[offset..];
-    let bitsize = common_bits.len();
-    let gamma = common_bits
-        .iter()
-        .enumerate()
-        .fold(0u32, |acc, (idx, &discrim)| {
-            if discrim >= 0 {
-                acc | (1 << ((bitsize - 1) - idx))
-            } else {
-                acc
-            }
-        });
-    let epsilon = gamma ^ (2u32.pow(bitsize as u32) - 1);
-
-    let oxy_sensor = find_sensor_val(Sensor::O2, &prefix_map, 0, bitsize);
-    let co2_sensor = find_sensor_val(Sensor::CO2, &prefix_map, 0, bitsize);
-    (gamma * epsilon, oxy_sensor * co2_sensor)
+    println!("{}", bitsize);
+    (
+        find_gamma_epsilon(common_bits, bitsize),
+        find_oxy_co2_rating(parsed, bitsize),
+    )
 }
 
 pub fn main() -> io::Result<()> {
