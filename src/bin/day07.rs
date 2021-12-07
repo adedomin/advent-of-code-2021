@@ -4,22 +4,29 @@ use std::{
     io::{self, Read},
 };
 
-fn fold_decimal(acc: u32, chr: &u8) -> u32 {
-    acc * 10 + (chr - b'0') as u32
+fn fold_decimal(acc: u64, chr: u8) -> u64 {
+    acc * 10 + (chr - b'0') as u64
 }
 
-fn parse(input: Vec<u8>) -> Vec<u32> {
-    let crabs = input
-        .split(|&chr| chr == b',' || chr == b'\n')
-        .into_iter()
-        .fold(Vec::<u32>::new(), |mut acc, digits| {
-            if digits.is_empty() {
-                acc
-            } else {
-                acc.push(digits.iter().fold(0u32, fold_decimal));
-                acc
+fn parse(input: Vec<u8>) -> Vec<u64> {
+    let mut crabs = vec![];
+    let mut num = 0u64;
+    let last = *input.last().unwrap();
+    for digit in input {
+        match digit {
+            b'0'..=b'9' => {
+                num = fold_decimal(num, digit);
             }
-        });
+            b',' | b'\n' => {
+                crabs.push(num);
+                num = 0u64;
+            }
+            _ => (),
+        }
+    }
+    if (b'0'..=b'9').contains(&last) {
+        crabs.push(num);
+    }
     crabs
 }
 
@@ -28,11 +35,11 @@ fn parse(input: Vec<u8>) -> Vec<u32> {
 /// 0.5x(x+1)
 /// or
 /// (x(x+1))/2
-fn p2_cost(abs_s: u32) -> u32 {
+fn p2_cost(abs_s: u64) -> u64 {
     (abs_s * (abs_s + 1)) / 2
 }
 
-fn solve(crabs: &mut Vec<u32>) -> (u32, u32) {
+fn solve(crabs: &mut Vec<u64>) -> (u64, u64) {
     let is_odd = crabs.len() % 2 == 1;
     let med_pos = crabs.len() / 2;
     let median = if is_odd {
@@ -44,13 +51,13 @@ fn solve(crabs: &mut Vec<u32>) -> (u32, u32) {
             smaller.select_nth_unstable_by(smaller.len() - 1, |&lhs, rhs| lhs.cmp(rhs));
         (*lhs_m + *rhs_m) / 2
     };
-    let part1 = crabs.iter().map(|&crab| crab.abs_diff(median)).sum::<u32>();
+    let part1 = crabs.iter().map(|&crab| crab.abs_diff(median)).sum::<u64>();
 
-    let mean = crabs.iter().sum::<u32>() / crabs.len() as u32;
+    let mean = crabs.iter().sum::<u64>() / crabs.len() as u64;
     let part2 = crabs
         .iter()
         .map(|&crab| p2_cost(crab.abs_diff(mean)))
-        .sum::<u32>();
+        .sum::<u64>();
     (part1, part2)
 }
 
