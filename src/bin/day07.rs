@@ -53,11 +53,15 @@ fn solve(crabs: &mut Vec<u64>) -> (u64, u64) {
     let part1 = crabs.iter().map(|&crab| crab.abs_diff(median)).sum::<u64>();
 
     let mean = crabs.iter().sum::<u64>() / crabs.len() as u64;
-    let part2 = crabs
+    let part2_guess1 = crabs
         .iter()
         .map(|&crab| p2_cost(crab.abs_diff(mean)))
         .sum::<u64>();
-    (part1, part2)
+    let part2_guess2 = crabs
+        .iter()
+        .map(|&crab| p2_cost(crab.abs_diff(mean + 1)))
+        .sum::<u64>();
+    (part1, part2_guess1.min(part2_guess2))
 }
 
 pub fn main() -> io::Result<()> {
