@@ -43,12 +43,11 @@ fn solve(crabs: &mut Vec<u64>) -> (u64, u64) {
     let is_odd = crabs.len() % 2 == 1;
     let med_pos = crabs.len() / 2;
     let median = if is_odd {
-        let (_, select, _) = crabs.select_nth_unstable_by(med_pos + 1, |&lhs, rhs| lhs.cmp(rhs));
+        let (_, select, _) = crabs.select_nth_unstable(med_pos + 1);
         *select
     } else {
-        let (smaller, rhs_m, _) = crabs.select_nth_unstable_by(med_pos, |&lhs, rhs| lhs.cmp(rhs));
-        let (_, lhs_m, _) =
-            smaller.select_nth_unstable_by(smaller.len() - 1, |&lhs, rhs| lhs.cmp(rhs));
+        let (smaller, rhs_m, _) = crabs.select_nth_unstable(med_pos);
+        let (_, lhs_m, _) = smaller.select_nth_unstable(smaller.len() - 1);
         (*lhs_m + *rhs_m) / 2
     };
     let part1 = crabs.iter().map(|&crab| crab.abs_diff(median)).sum::<u64>();
