@@ -30,7 +30,7 @@ fn sidx(seg: u8) -> usize {
 /// f |__| d
 ///    e
 /// TRUTHS
-/// 1 & !7 = a
+/// 1 ^ 7 = a
 /// 1 ^ 8 ^ 4 = abdef
 /// 4 | a ^ 8 = ef
 /// 7 ^ 8 ^ ef = cg
