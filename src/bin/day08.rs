@@ -19,7 +19,6 @@ fn next_line(chr: u8) -> ParseState {
 }
 
 const PIPE: u8 = 0b1000_0000;
-const NPIPE: u8 = 0b0111_1111;
 
 fn sidx(seg: u8) -> usize {
     (seg - b'a') as usize
@@ -76,17 +75,17 @@ fn solve(segments: &[u8]) -> u64 {
         }
     }
 
-    segment_parts[sidx(b'a')] = segment_digits[1] ^ segment_digits[7] & NPIPE;
+    segment_parts[sidx(b'a')] = segment_digits[1] ^ segment_digits[7];
     if segment_parts[sidx(b'a')] == 0 {
         panic!("Invalid input");
     }
-    let abdef = segment_digits[1] ^ segment_digits[8] ^ segment_digits[4] & NPIPE;
-    let ef = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ segment_digits[8] & NPIPE;
-    let cg = segment_digits[7] ^ segment_digits[8] ^ ef & NPIPE;
-    // let acg = segment_digits[4] | segment_parts[sidx(b'a')] ^ segment_digits[1] & NPIPE;
+    let abdef = segment_digits[1] ^ segment_digits[8] ^ segment_digits[4];
+    let ef = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ segment_digits[8];
+    let cg = segment_digits[7] ^ segment_digits[8] ^ ef;
+    // let acg = segment_digits[4] | segment_parts[sidx(b'a')] ^ segment_digits[1];
 
     for sixer in sixers {
-        let four_a_xor_sixer = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ sixer & NPIPE;
+        let four_a_xor_sixer = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ sixer;
         if four_a_xor_sixer.count_ones() == 1 {
             segment_parts[sidx(b'e')] = four_a_xor_sixer;
         }
@@ -94,13 +93,13 @@ fn solve(segments: &[u8]) -> u64 {
     if segment_parts[sidx(b'e')] == 0 {
         panic!("Invalid input");
     }
-    segment_parts[sidx(b'f')] = segment_parts[sidx(b'e')] ^ ef & NPIPE;
+    segment_parts[sidx(b'f')] = segment_parts[sidx(b'e')] ^ ef;
 
     for sixer in sixers {
-        let four_a_xor_sixer = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ sixer & NPIPE;
+        let four_a_xor_sixer = segment_digits[4] ^ segment_parts[sidx(b'a')] ^ sixer;
         if four_a_xor_sixer.count_ones() == 3 {
-            let maybe_c = four_a_xor_sixer ^ ef & NPIPE;
-            let maybe_g = maybe_c ^ cg & NPIPE;
+            let maybe_c = four_a_xor_sixer ^ ef;
+            let maybe_g = maybe_c ^ cg;
             if maybe_g.count_ones() == 1 {
                 segment_parts[sidx(b'c')] = maybe_c;
                 segment_parts[sidx(b'g')] = maybe_g;
