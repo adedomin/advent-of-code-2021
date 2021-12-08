@@ -1,8 +1,7 @@
 #![feature(int_abs_diff)]
-use std::{
-    env, fs,
-    io::{self, Read},
-};
+use std::io;
+
+use advent_of_code_2021::read_input;
 
 fn fold_decimal(acc: u64, chr: u8) -> u64 {
     acc * 10 + (chr - b'0') as u64
@@ -61,14 +60,7 @@ fn solve(crabs: &mut Vec<u64>) -> (u64, u64) {
 }
 
 pub fn main() -> io::Result<()> {
-    let input = match env::args().nth(1) {
-        Some(arg) => fs::read(arg)?,
-        None => {
-            let mut buf = vec![];
-            io::stdin().lock().read_to_end(&mut buf)?;
-            buf
-        }
-    };
+    let input = read_input()?;
     let mut crabs = parse(input);
     let (p1, p2) = solve(&mut crabs);
     println!("Part1 {}, Part2 {}", p1, p2);

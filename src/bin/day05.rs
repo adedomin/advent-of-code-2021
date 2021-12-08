@@ -1,7 +1,6 @@
-use std::{
-    env, fs,
-    io::{self, Read},
-};
+use std::io;
+
+use advent_of_code_2021::read_input;
 
 fn fold_decimal(acc: i32, chr: u8) -> i32 {
     acc * 10 + (chr - b'0') as i32
@@ -124,14 +123,7 @@ fn solve(dim: i32, flat_points: Vec<(i32, i32)>, points: Vec<(i32, i32)>) -> (us
 }
 
 pub fn main() -> io::Result<()> {
-    let input = match env::args().nth(1) {
-        Some(arg) => fs::read(arg)?,
-        None => {
-            let mut buf = vec![];
-            io::stdin().lock().read_to_end(&mut buf)?;
-            buf
-        }
-    };
+    let input = read_input()?;
     let (dim, fp, p) = parse(input);
     let (p1, p2) = solve(dim, fp, p);
     println!("Part1 {}, Part2 {}", p1, p2);

@@ -1,8 +1,6 @@
-use std::{
-    env, fs,
-    io::{self, Read},
-    mem,
-};
+use std::{io, mem};
+
+use advent_of_code_2021::read_input;
 
 #[derive(PartialEq, Debug)]
 enum Sensor {
@@ -20,7 +18,7 @@ fn parse(input: Vec<u8>) -> ([i32; 128], Vec<u128>, usize) {
                 } else if let Some(last) = acc.last_mut() {
                     *last |= 1 << idx;
                 } else {
-                    acc.push(1);
+                    unreachable!();
                 }
                 gamma_arr[idx] += 1;
                 (gamma_arr, acc, idx + 1, bitsize)
@@ -59,10 +57,8 @@ fn find_oxy_co2_rating(input: Vec<u128>, bitsize: usize) -> u128 {
             }
             if ones.is_empty() {
                 mem::swap(&mut iter_arr, &mut zeroes);
-                zeroes.clear();
             } else if zeroes.is_empty() {
                 mem::swap(&mut iter_arr, &mut ones);
-                ones.clear();
             } else {
                 match stype {
                     Sensor::O2 => {
@@ -119,14 +115,7 @@ fn solve(input: Vec<u8>) -> (u128, u128) {
 }
 
 pub fn main() -> io::Result<()> {
-    let input = match env::args().nth(1) {
-        Some(arg) => fs::read(arg)?,
-        None => {
-            let mut buf = vec![];
-            io::stdin().lock().read_to_end(&mut buf)?;
-            buf
-        }
-    };
+    let input = read_input()?;
     let (p1, p2) = solve(input);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())

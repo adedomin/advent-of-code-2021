@@ -1,9 +1,6 @@
-use std::{
-    collections::HashMap,
-    env, fs,
-    io::{self, Read},
-};
+use std::{collections::HashMap, io};
 
+use advent_of_code_2021::read_input;
 use itertools::Itertools;
 
 struct Board {
@@ -135,14 +132,7 @@ fn solve(
 }
 
 pub fn main() -> io::Result<()> {
-    let input = match env::args().nth(1) {
-        Some(arg) => fs::read(arg)?,
-        None => {
-            let mut buf = vec![];
-            io::stdin().lock().read_to_end(&mut buf)?;
-            buf
-        }
-    };
+    let input = read_input()?;
     let (numbers, boards) =
         input.split_at(input.iter().find_position(|&&chr| chr == b'\n').unwrap().0);
     let numbers = parse_numbers(numbers);

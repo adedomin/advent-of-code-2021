@@ -1,4 +1,6 @@
-use std::{env, fs, io};
+use std::io;
+
+use advent_of_code_2021::read_input;
 
 // we don't care about invalid input, yolo
 fn ascii_str_to_u64(input: &[u8]) -> i64 {
@@ -31,10 +33,7 @@ fn parse_and_solve(input: Vec<u8>) -> (i64, i64) {
 }
 
 pub fn main() -> io::Result<()> {
-    let mut args = env::args();
-    args.next();
-    let filename = args.next().unwrap_or_else(|| "/dev/stdin".to_owned());
-    let input = fs::read(filename)?;
+    let input = read_input()?;
     let (p1, p2) = parse_and_solve(input);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())

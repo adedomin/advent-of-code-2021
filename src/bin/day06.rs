@@ -1,8 +1,6 @@
-use std::{
-    env, fs,
-    io::{self, Read},
-    u128,
-};
+use std::io;
+
+use advent_of_code_2021::read_input;
 
 // fish are only [0, 8]
 fn parse(input: Vec<u8>) -> Vec<u8> {
@@ -130,14 +128,7 @@ fn solve(fish: Vec<u8>) -> (u128, u128) {
 }
 
 pub fn main() -> io::Result<()> {
-    let input = match env::args().nth(1) {
-        Some(arg) => fs::read(arg)?,
-        None => {
-            let mut buf = vec![];
-            io::stdin().lock().read_to_end(&mut buf)?;
-            buf
-        }
-    };
+    let input = read_input()?;
     let fish = parse(input);
     let (p1, p2) = solve(fish);
     println!("Part1 {}, Part2 {}", p1, p2);

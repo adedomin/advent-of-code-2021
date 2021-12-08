@@ -1,5 +1,7 @@
 #![feature(array_windows)]
-use std::{env, fs, io};
+use std::io;
+
+use advent_of_code_2021::read_input_to_string;
 
 /// Where N - 1 is the window size
 pub fn solve<const N: usize>(input: &[u64]) -> u64 {
@@ -17,10 +19,7 @@ pub fn input_generator(input: &str) -> Vec<u64> {
 }
 
 pub fn main() -> io::Result<()> {
-    let mut args = env::args();
-    args.next();
-    let filename = args.next().unwrap_or_else(|| "/dev/stdin".to_owned());
-    let input = fs::read_to_string(filename)?;
+    let input = read_input_to_string()?;
     let input = input_generator(&input);
     println!("Part1 {}, Part2 {}", solve::<2>(&input), solve::<4>(&input));
     Ok(())
