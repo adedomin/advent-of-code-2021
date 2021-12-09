@@ -17,6 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// #![feature(exclusive_range_pattern)]
+
 use std::{
     env, fs,
     io::{self, Read},
@@ -40,6 +42,67 @@ pub fn read_input_to_string() -> io::Result<String> {
             let mut buf = String::new();
             io::stdin().lock().read_to_string(&mut buf)?;
             Ok(buf)
+        }
+    }
+}
+
+pub struct AoCTokenizer<'a> {
+    head: usize,
+    done: bool,
+    buffer: &'a [u8],
+}
+
+#[derive(Debug)]
+pub enum Token<'a> {
+    Something(&'a [u8]),
+    Delimiter(u8),
+    Newline,
+    Space,
+    End,
+}
+
+impl<'a> AoCTokenizer<'a> {
+    pub fn new(input: &'a [u8]) -> Self {
+        AoCTokenizer {
+            head: 0,
+            done: false,
+            buffer: input,
+        }
+    }
+}
+
+impl<'a> Iterator for AoCTokenizer<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        } else if self.head >= self.buffer.len() {
+            self.done = true;
+            return Some(Token::End);
+        }
+
+        let start = self.head;
+        self.head += 1;
+        match self.buffer[start] {
+            b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' => {
+                let mut i = start + 1;
+                self.head = loop {
+                    if i < self.buffer.len() {
+                        match self.buffer[i] {
+                            b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' => (),
+                            _ => break i,
+                        }
+                        i += 1;
+                    } else {
+                        break i;
+                    }
+                };
+                Some(Token::Something(&self.buffer[start..self.head]))
+            }
+            b'\n' => Some(Token::Newline),
+            b' ' => Some(Token::Space),
+            x => Some(Token::Delimiter(x)),
         }
     }
 }
