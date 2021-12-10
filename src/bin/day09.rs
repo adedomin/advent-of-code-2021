@@ -2,129 +2,74 @@ use std::{collections::VecDeque, io};
 
 use advent_of_code_2021::read_input;
 
-fn parse(input: &mut [u8]) -> (isize, isize) {
-    let mut row_width = 0isize;
-    input.iter_mut().enumerate().for_each(|(i, el)| {
-        if row_width == 0 && *el == b'\n' {
-            row_width = i as isize;
-        } else if *el != b'\n' {
-            *el -= b'0';
+type Vec2D<T> = Vec<Vec<T>>;
+
+const VISITED: u8 = 10;
+
+fn parse(input: Vec<u8>) -> Vec2D<u8> {
+    let row_width = input.iter().position(|&chr| chr == b'\n').unwrap();
+    let col_len = ((input.len() - 1) / (row_width + 1)) + 1;
+
+    let mut cave = vec![vec![9u8; row_width + 2]; col_len + 2];
+
+    let mut i = 1usize;
+    let mut j = 1usize;
+    input.iter().for_each(|&el| {
+        if el == b'\n' {
+            i = 1;
+            j += 1;
+        } else if el != b'\n' {
+            cave[j][i] = el - b'0';
+            i += 1;
         }
     });
-    (row_width, (input.len() - 1) as isize / (row_width + 1) + 1)
+    cave
 }
 
-fn in_bounds(x: isize, y: isize, xmax: isize, ymax: isize) -> bool {
-    if x < 0 || y < 0 {
-        false
-    } else {
-        x < xmax && y < ymax
-    }
-}
-
-fn xy(x: isize, y: isize, xmax: isize, ymax: isize) -> Option<isize> {
-    if in_bounds(x, y, xmax, ymax) {
-        let skip_factored_x = x + x / xmax;
-        Some(skip_factored_x + y * (xmax + 1))
-    } else {
-        None
-    }
-}
-
-fn neighbors(
-    x: isize,
-    y: isize,
-    xmax: isize,
-    ymax: isize,
-) -> (Option<isize>, Option<isize>, Option<isize>, Option<isize>) {
-    (
-        xy(x, y - 1, xmax, ymax),
-        xy(x + 1, y, xmax, ymax),
-        xy(x, y + 1, xmax, ymax),
-        xy(x - 1, y, xmax, ymax),
-    )
-}
-
-fn solve(maze: Vec<u8>, xmax: isize, ymax: isize) -> (u64, u64) {
+fn get_lows(cave: &Vec2D<u8>) -> (Vec<(usize, usize)>, u64) {
     let mut low_risk = 0u64;
     let mut lows = vec![];
-    for y in 0..ymax {
-        for x in 0..xmax {
-            if let Some(position) = xy(x, y, xmax, ymax) {
-                let node_value = maze[position as usize];
-                let (north, east, south, west) = neighbors(x, y, xmax, ymax);
-                let mut threshold = 0i32;
-                let mut count = 0i32;
-
-                if let Some(north) = north {
-                    threshold += 1;
-                    count += (node_value < maze[north as usize]) as i32;
-                }
-                if let Some(east) = east {
-                    threshold += 1;
-                    count += (node_value < maze[east as usize]) as i32;
-                }
-                if let Some(south) = south {
-                    threshold += 1;
-                    count += (node_value < maze[south as usize]) as i32;
-                }
-                if let Some(west) = west {
-                    threshold += 1;
-                    count += (node_value < maze[west as usize]) as i32;
-                }
-
-                if threshold == count {
-                    lows.push((x, y, position));
-                    low_risk += 1 + node_value as u64;
-                }
+    for y in 1..(cave.len() - 1) {
+        for x in 1..(cave[0].len() - 1) {
+            let val_at = cave[y][x];
+            if cave[y - 1][x] > val_at
+                && cave[y][x + 1] > val_at
+                && cave[y + 1][x] > val_at
+                && cave[y][x - 1] > val_at
+            {
+                lows.push((x, y));
+                low_risk += 1 + val_at as u64;
             }
         }
     }
+    (lows, low_risk)
+}
 
-    let mut visited = vec![false; maze.len()];
+fn find_basins(mut cave: Vec2D<u8>, lows: Vec<(usize, usize)>) -> u64 {
     let mut largest_basins = [0u64, 0u64, 0u64];
-    for (xlow, ylow, pos) in lows {
-        if visited[pos as usize] {
+    for (x, y) in lows {
+        if cave[y][x] == VISITED {
             continue;
         }
 
         let mut queue = VecDeque::new();
-        queue.push_back((xlow, ylow));
+        queue.push_back((x, y));
         let mut sum = 0;
 
         while !queue.is_empty() {
             let (x, y) = queue.pop_front().unwrap();
-            if let Some(idx) = xy(x, y, xmax, ymax) {
-                if visited[idx as usize] {
-                    continue;
-                }
-
-                let point_val = maze[idx as usize];
-                if point_val == 9 {
-                    continue;
-                }
-
-                visited[idx as usize] = true;
-                sum += 1;
-
-                let (n, e, s, w) = neighbors(x, y, xmax, ymax);
-
-                if n.is_some() {
-                    queue.push_back((x, y - 1));
-                }
-
-                if e.is_some() {
-                    queue.push_back((x + 1, y));
-                }
-
-                if s.is_some() {
-                    queue.push_back((x, y + 1));
-                }
-
-                if w.is_some() {
-                    queue.push_back((x - 1, y));
-                }
+            let val_at = &mut cave[y][x];
+            if *val_at == VISITED || *val_at == 9 {
+                continue;
             }
+
+            *val_at = 10;
+            sum += 1;
+
+            queue.push_back((x, y - 1));
+            queue.push_back((x + 1, y));
+            queue.push_back((x, y + 1));
+            queue.push_back((x - 1, y));
         }
 
         if largest_basins[0] < sum {
@@ -132,16 +77,14 @@ fn solve(maze: Vec<u8>, xmax: isize, ymax: isize) -> (u64, u64) {
             largest_basins.sort_unstable();
         }
     }
-    (
-        low_risk,
-        largest_basins[0] * largest_basins[1] * largest_basins[2],
-    )
+    largest_basins[0] * largest_basins[1] * largest_basins[2]
 }
 
 pub fn main() -> io::Result<()> {
-    let mut input = read_input()?;
-    let (rowlen, collen) = parse(&mut input);
-    let (p1, p2) = solve(input, rowlen, collen);
+    let input = read_input()?;
+    let parsed = parse(input);
+    let (lows, p1) = get_lows(&parsed);
+    let p2 = find_basins(parsed, lows);
     println!("Part1 {}, Part2 {}", p1, p2);
     Ok(())
 }

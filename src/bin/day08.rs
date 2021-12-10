@@ -1,7 +1,6 @@
 use std::io;
 
 use advent_of_code_2021::{read_input, AoCTokenizer, Token};
-use itertools::Itertools;
 
 const PIPE: u8 = 0b1000_0000;
 
@@ -138,11 +137,7 @@ fn solve(segments: &[u8]) -> u64 {
 
     let (_, display) = segments.split_at(divider);
     display.iter().skip(1).fold(0u64, |acc, &digit| {
-        let decoded = segement_digits
-            .iter()
-            .find_position(|&&d| d == digit)
-            .unwrap()
-            .0 as u64;
+        let decoded = segement_digits.iter().position(|&d| d == digit).unwrap() as u64;
         acc * 10 + decoded
     })
 }
