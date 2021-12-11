@@ -136,6 +136,9 @@ fn solve(mut octopi: Octopi) -> (usize, usize) {
                 }
             }
         }
+        run += 1;
+
+        // count flashes and clear flash bitmap
         let mut total_flash = 0usize;
         for y in 0..flashset.len() {
             for x in 0..flashset[0].len() {
@@ -146,11 +149,11 @@ fn solve(mut octopi: Octopi) -> (usize, usize) {
                 *octopus = false;
             }
         }
-        if run < 100 {
+
+        if run <= 100 {
             flashes += total_flash;
         }
-        run += 1;
-        if total_flash == flashset.len() * flashset[0].len() {
+        if synced == usize::MAX && total_flash == flashset.len() * flashset[0].len() {
             synced = run;
         }
         if run >= 100 && synced != usize::MAX {
