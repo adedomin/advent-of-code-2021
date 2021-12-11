@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fmt::Debug,
     io,
     ops::{Index, IndexMut},
@@ -92,25 +91,20 @@ impl Debug for Octopi {
     }
 }
 
-fn irridate_neighbors(
-    octopi: &mut Octopi,
-    flashset: &mut HashSet<(usize, usize)>,
-    x: usize,
-    y: usize,
-) {
+fn irridate_neighbors(octopi: &mut Octopi, flashset: &mut Vec2D<bool>, x: usize, y: usize) {
     let mut stack = vec![(x, y)];
 
     while !stack.is_empty() {
         let (x, y) = stack.pop().unwrap();
         let octopus = &mut octopi[y][x];
-        if *octopus == BORDER || flashset.contains(&(x, y)) {
+        if *octopus == BORDER || flashset[y - 1][x - 1] {
             continue;
         }
 
         *octopus += 1;
         if *octopus == 10 {
             *octopus = 0;
-            flashset.insert((x, y));
+            flashset[y - 1][x - 1] = true;
             stack.push((x, y - 1)); // north
             stack.push((x + 1, y - 1)); // north-east
             stack.push((x + 1, y)); // east
@@ -124,30 +118,47 @@ fn irridate_neighbors(
 }
 
 fn solve(mut octopi: Octopi) -> (usize, usize) {
+    let mut synced = usize::MAX;
     let mut run = 0usize;
     let mut flashes = 0usize;
 
-    let mut flashset = HashSet::new();
+    let mut flashset = vec![vec![false; octopi.width() - 1]; octopi.height() - 1];
+
     // println!("run  -0: {:?}", octopi);
-    while flashset.len() != ((octopi.height() - 1) * (octopi.width() - 1)) {
-        flashset.clear();
+    loop {
         for y in 1..octopi.height() {
             for x in 1..octopi.width() {
                 let octopus = &mut octopi[y][x];
                 if *octopus == 9 {
                     irridate_neighbors(&mut octopi, &mut flashset, x, y);
-                } else if !flashset.contains(&(x, y)) {
+                } else if !flashset[y - 1][x - 1] {
                     *octopus += 1;
                 }
             }
         }
+        let mut total_flash = 0usize;
+        for y in 0..flashset.len() {
+            for x in 0..flashset[0].len() {
+                let octopus = &mut flashset[y][x];
+                if *octopus {
+                    total_flash += 1;
+                }
+                *octopus = false;
+            }
+        }
         if run < 100 {
-            flashes += flashset.len();
+            flashes += total_flash;
         }
         run += 1;
+        if total_flash == flashset.len() * flashset[0].len() {
+            synced = run;
+        }
+        if run >= 100 && synced != usize::MAX {
+            break;
+        }
         // println!("run {:03}: {:?}", _runs + 1, octopi);
     }
-    (flashes, run)
+    (flashes, synced)
 }
 
 pub fn main() -> io::Result<()> {
