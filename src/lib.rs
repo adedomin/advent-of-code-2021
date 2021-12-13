@@ -22,7 +22,10 @@
 use std::{
     env, fs,
     io::{self, Read},
+    ops::{Add, Mul},
 };
+
+use num::cast::AsPrimitive;
 
 pub fn read_input() -> io::Result<Vec<u8>> {
     match env::args().nth(1) {
@@ -50,6 +53,17 @@ pub struct AoCTokenizer<'a> {
     head: usize,
     done: bool,
     buffer: &'a [u8],
+}
+
+/// Intended to be used with: .iter().fold(num, fold_decimal)
+pub fn fold_decimal<T>(acc: T, chr: &u8) -> T
+where
+    T: Copy + 'static,
+    T: Add<Output = T>,
+    T: Mul<Output = T>,
+    u8: num::traits::AsPrimitive<T>,
+{
+    acc * 10.as_() + (chr - b'0').as_()
 }
 
 #[derive(Debug)]

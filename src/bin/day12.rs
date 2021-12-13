@@ -174,7 +174,7 @@ pub fn main() -> io::Result<()> {
         .iter()
         .enumerate()
         .filter(|(_, n)| n.cave == CaveSize::Small && n.ident != START && n.ident != END)
-        .fold(0u32, |acc, (idx, _)| (acc + solve(&root, Some(idx))) - p1);
+        .fold(0u64, |acc, (idx, _)| (acc + solve(&root, Some(idx))) - p1);
     println!("Part1 {}, Part2 {}", p1, p1 + p2);
     Ok(())
 }
