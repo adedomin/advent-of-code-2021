@@ -50,7 +50,7 @@ fn solve_for_x_rounds(
     last: u8,
     runs: u64,
 ) -> u64 {
-    let mut hist = input_histogram.clone();
+    let mut hist = *input_histogram;
     for _ in 0..runs {
         hist = hist
             .iter()
