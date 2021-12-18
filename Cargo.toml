@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 itertools = '0.10.3'
 num = "0.4.0"
+bitvec = "0.22.3"
