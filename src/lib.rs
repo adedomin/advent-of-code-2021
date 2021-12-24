@@ -25,6 +25,8 @@ use std::{
     ops::{Add, Mul},
 };
 
+pub type Vec2D<T> = Vec<Vec<T>>;
+
 use num::cast::AsPrimitive;
 
 pub fn read_input() -> io::Result<Vec<u8>> {
